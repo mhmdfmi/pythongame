@@ -17,6 +17,18 @@ enemy_bullet = 'enemybullet.png'
 ufo_bullet = 'enemybullet.png'
 
 
+''' SOUND '''
+
+laser_sound = pygame.mixer.Sound('laser.wav')
+exp_sound = pygame.mixer.Sound('low_expl.wav')
+go_sound = pygame.mixer.Sound('go.wav')
+game_over_sound = pygame.mixer.Sound('game_over.wav')
+start_sound = pygame.mixer.Sound('cyberfunk.mp3')
+game_over_music = pygame.mixer.Sound('illusoryrealm.mp3')
+
+backsound_music = pygame.mixer.music.load('epicsong.mp3')
+
+pygame.mixer.init()
 
 screen = pygame.display.set_mode((0,0), FULLSCREEN)
 s_width, s_height = screen.get_size()
@@ -104,6 +116,7 @@ class Player(pygame.sprite.Sprite):
 
     def shoot(self):
         if self.activateBullet:
+            pygame.mixer.Sound.play(laser_sound)
             bullet = PlayerBullet(player_bullet)
             mouse = pygame.mouse.get_pos()
             bullet.rect.x = mouse[0]
@@ -112,6 +125,7 @@ class Player(pygame.sprite.Sprite):
             sprite_group.add(bullet)
 
     def dead(self):
+        pygame.mixer.Sound.play(exp_sound)
         self.alive = False
         self.activateBullet = False
         
@@ -215,6 +229,8 @@ class Game:
         self.lives = 3
         self.score = 0
         self.init_create = True
+        self.game_over_sound_delay = 0
+
         self.start_screen()
 
     def start_text(self):
@@ -244,6 +260,10 @@ class Game:
         screen.blit(text5, text5_rect)
 
     def start_screen(self):
+        pygame.mixer.Sound.stop(game_over_music)
+        pygame.mixer.Sound.play(start_sound)
+        self.lives = 3
+        sprite_group.empty()
         while True:
             screen.fill('black')
             self.start_text()
@@ -298,23 +318,33 @@ class Game:
     def gameOver_text(self):
         font = pygame.font.SysFont('Calibri', 50)
         text = font.render('GAME OVER', True, 'red')
-        text_rect = text.get_rect(center=(s_width/2, s_height/2))
+        text_rect = text.get_rect(center=(s_width/2, s_height/2 - 10))
         screen.blit(text, text_rect)
 
         font2 = pygame.font.SysFont('Calibri', 30)
-        text2 = font2.render('Press ESC to QUIT', True, 'white')
+        text2 = font2.render('Score: ' + str(self.score), True, 'white')
         text2_rect = text2.get_rect(center=(s_width/2, s_height/2 + 60))
+        screen.blit(text2, text2_rect)
+
+        font2 = pygame.font.SysFont('Calibri', 30)
+        text2 = font2.render('Press ESC to QUIT', True, 'white')
+        text2_rect = text2.get_rect(center=(s_width/2, s_height/2 + 120))
         screen.blit(text2, text2_rect)
 
         font3 = pygame.font.SysFont('Calibri', 30)
         text3 = font3.render('Press R to RESTART', True, 'white')
-        text3_rect = text3.get_rect(center=(s_width/2, s_height/2 + 120))
+        text3_rect = text3.get_rect(center=(s_width/2, s_height/2 + 180))
         screen.blit(text3, text3_rect)
 
     def gameOver_screen(self):
+        pygame.mixer.music.stop()
+        pygame.mixer.Sound.play(game_over_sound)
         while True:
             screen.fill('black')
             self.gameOver_text()
+            self.game_over_sound_delay += 1
+            if self.game_over_sound_delay > 200:
+                pygame.mixer.Sound.play(game_over_music)
             for event in pygame.event.get():
                 if event.type == QUIT:
                     pygame.quit()
@@ -379,6 +409,7 @@ class Game:
                 i.rect.x = random.randrange(0, s_width)
                 i.rect.y = random.randrange(-3000, -100)
                 self.countHit = 0
+                pygame.mixer.Sound.play(exp_sound)
 
     def playerBulletHitsUfo(self):
         hits = pygame.sprite.groupcollide(ufo_group, playerBullet_group, False, True)
@@ -393,6 +424,7 @@ class Game:
                 sprite_group.add(explosion)
                 i.rect.x = -199
                 self.countHit2 = 0
+                pygame.mixer.Sound.play(exp_sound)
 
     def enemyBulletHitsPlayer(self):
         if self.player.image.get_alpha() == 255:
@@ -447,7 +479,7 @@ class Game:
     def create_score(self):
         score = self.score
         font = pygame.font.SysFont('Calibri', 30)
-        text = font.render(str(score), True, 'green')
+        text = font.render("Score: " + str(score), True, 'green')
         text_rect = text.get_rect(center=(s_width-150, s_height-700))
         screen.blit(text, text_rect)
 
@@ -457,6 +489,9 @@ class Game:
 
 
     def run_game(self):
+        pygame.mixer.Sound.stop(start_sound)
+        pygame.mixer.music.play(-1)
+        pygame.mixer.Sound.play(go_sound)
         if self.init_create:
             self.create_background()
             self.create_particle()
@@ -483,6 +518,7 @@ class Game:
                 if event.type == KEYDOWN:
                     if event.key == K_s:
                         self.player.shoot()
+
                     if event.key == K_ESCAPE:
                         pygame.quit()
                         sys.exit()
